@@ -273,6 +273,23 @@ class DictionaryCog(Cog):
 
         await ctx.response.send_message("설정 정보를 찾을 수 없습니다.", ephemeral=True)
 
+    @dictionary_group.command(name='새로고침', description='사전을 다시 불러옵니다.')
+    async def dictionary_reload(self, ctx: Interaction, name: str):
+        try:
+            dictionary = next(
+                filter(lambda x: x.name == name, self.dictionaries)
+            )
+            database = dictionary.database
+        except StopIteration:
+            await ctx.response.send_message(
+                f"이름이 `{name}`인 사전을 찾을 수 없습니다.", ephemeral=True
+            )
+            return
+
+        await ctx.response.defer(ephemeral=True)
+        database.reload()
+        await ctx.edit_original_response(content=f'`{name}` 사전이 새로고침되었습니다.')
+
     @dictionary_setting.autocomplete("property")
     async def dictionary_setting_property_autocomplete(
         self, _ctx: Interaction, _current: str
@@ -287,6 +304,7 @@ class DictionaryCog(Cog):
     @dictionary_info.autocomplete("name")
     @dictionary_delete.autocomplete("name")
     @dictionary_setting.autocomplete("name")
+    @dictionary_reload.autocomplete("name")
     async def name_autocomplete(
         self, _: Interaction, current: str
     ) -> list[Choice[str]]:

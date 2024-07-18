@@ -6,6 +6,7 @@ from json import load, dump
 from discord import Interaction, Embed
 from discord.app_commands import command, Group, Choice, describe
 from discord.ext.commands import Cog, Bot
+from gspread.exceptions import SpreadsheetNotFound
 
 from consts import get_const
 from database import Database
@@ -158,7 +159,19 @@ class DictionaryCog(Cog):
                 )
                 return
 
-        database = Database(spreadsheet_id, sheet_index)
+        try:
+            database = Database(spreadsheet_id, sheet_index)
+        except PermissionError:
+            await ctx.edit_original_response(
+                content='사전을 불러오지 못했습니다. 사전이 공개되어있는지 확인해주세요.'
+            )
+            return
+        except SpreadsheetNotFound:
+            await ctx.edit_original_response(
+                content='사전을 불러오지 못했습니다. 사전 링크가 올바른지 확인해주세요.'
+            )
+            return
+
         dictionary = Dictionary(
             name, spreadsheet_id, sheet_index, ctx.user.id, database
         )

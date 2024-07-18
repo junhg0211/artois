@@ -1,4 +1,5 @@
 import re
+from datetime import datetime, timedelta
 from dataclasses import dataclass, asdict, field
 from json import load, dump
 
@@ -91,6 +92,11 @@ class DictionaryCog(Cog):
             )
             return
 
+        reloading = database.last_reload + timedelta(days=7) < datetime.now()
+        if reloading:
+            await ctx.response.defer(ephemeral=ephemeral)
+            database.reload()
+
         rows = await database.search_rows(
             query, dictionary.word_column, dictionary.exclude_columns
         )
@@ -108,7 +114,10 @@ class DictionaryCog(Cog):
 
             embed.add_field(name=word, value=f"\n".join(result))
 
-        await ctx.response.send_message(embed=embed, ephemeral=ephemeral)
+        if reloading:
+            await ctx.edit_original_response(embed=embed)
+        else:
+            await ctx.response.send_message(embed=embed, ephemeral=ephemeral)
 
     dictionary_group = Group(name="사전", description="사전을 관리합니다.")
 

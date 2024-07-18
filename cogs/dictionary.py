@@ -36,11 +36,15 @@ class Dictionary:
         )
 
         author = bot.get_user(self.author)
-        embed.add_field(name="단어 수", value=f"{len(self.database.sheet_values)-1}개")
+        embed.add_field(name="스프레드시트 ID", value=f"{self.spreadsheet_id}", inline=False)
+        embed.add_field(name="이름", value=f"{self.name}")
+        embed.add_field(name="시트 인덱스", value=f"{self.sheet_index}")
         if author is not None:
             embed.add_field(name="제작자", value=f"{author.mention}")
+        embed.add_field(name="단어 열", value=f"{self.word_column}")
         embed.add_field(name="색상", value=f"#{self.color:06X}")
         embed.add_field(name="제외 열", value=f"{self.exclude_columns}")
+        embed.add_field(name="단어 수", value=f"{len(self.database.sheet_values)-1}개")
 
         return embed
 

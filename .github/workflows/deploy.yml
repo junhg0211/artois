@@ -17,4 +17,4 @@ jobs:
           HOST: sch.shtelo.org
           USER: pi
           PRIVATE_SSH_KEY: ${{ secrets.SHTELOPI_SSH_KEY }}
-          COMMAND: tmux send-keys -t artois ^C Enter "git pull ; python3 -m pip install -r requirements.txt ; python3 ." Enter
+          COMMAND: tmux send-keys -t artois ^C Enter "git pull ; python3.10 -m pip install -r requirements.txt ; python3.10 ." Enter

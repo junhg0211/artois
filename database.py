@@ -4,7 +4,7 @@ from typing import Optional
 
 import gspread
 
-from util import normalise, similarity
+from util import normalise, similarity, wait
 
 
 class Database:
@@ -17,6 +17,8 @@ class Database:
         self.spreadsheet_key = spreadsheet_key
         self.sheet_number = sheet_number
 
+        print(f'load {spreadsheet_key}')
+        wait(2)
         self.credential = gspread.service_account(filename='res/google_credentials.json')
         self.sheet = self.credential \
             .open_by_key(self.spreadsheet_key) \

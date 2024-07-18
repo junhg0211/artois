@@ -1,5 +1,7 @@
 import unicodedata
+from datetime import datetime, timedelta
 from difflib import SequenceMatcher
+from time import sleep
 
 
 def normalise(string: str):
@@ -12,3 +14,13 @@ def generate_dictionary_url(spreadsheet_id: str) -> str:
 
 def similarity(a, b) -> float:
     return SequenceMatcher(None, a, b).ratio()
+
+
+last_wait = datetime.now()
+
+def wait(seconds):
+    global last_wait
+
+    while last_wait + timedelta(seconds=seconds) > datetime.now():
+        sleep(0.1)
+    last_wait = datetime.now()

@@ -200,6 +200,7 @@ class DictionaryCog(Cog):
         names = list()
         for dictionary in self.dictionaries:
             names.append(f"`{dictionary.name}`")
+        names.sort()
         names = ", ".join(names)
 
         if self.dictionaries:
@@ -390,6 +391,7 @@ class DictionaryCog(Cog):
         for dictionary in self.dictionaries:
             if current in dictionary.name:
                 names.append(dictionary.name)
+        names.sort()
         return list(map(lambda x: Choice(name=x, value=x), names))
 
 

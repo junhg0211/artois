@@ -283,8 +283,58 @@ class DictionaryCog(Cog):
             )
             self.dump_dictionaries()
             return
+        
+        if property == "sheet_index":
+            try:
+                new_sheet_index = int(value)
+            except ValueError:
+                await ctx.response.send_message(
+                    "시트 인덱스는 정수를 입력해야 합니다.", ephemeral=True
+                )
+                return
+
+            if 0 > new_sheet_index:
+                await ctx.response.send_message(
+                    "시트 인덱스는 0 이상의 정수를 입력해야 합니다.", ephemeral=True
+                )
+                return
+
+            dictionary.sheet_index = new_sheet_index
+            await ctx.response.send_message(
+                f"시트 인덱스를 `{dictionary.sheet_index}`(으)로 설정했습니다.",
+                ephemeral=True,
+            )
+            self.dump_dictionaries()
+            return
+
+        if property == "name":
+            for d in self.dictionaries:
+                if d.name == value:
+                    await ctx.response.send_message(
+                        f"이름이 `{value}`인 사전이 이미 존재합니다.", ephemeral=True,
+                    )
+                    return
+            
+            dictionary.name = value
+            await ctx.response.send_message(
+                f'사전 이름을 `{value}`(으)로 설정했습니다.', ephemeral=True
+            )
+            self.dump_dictionaries()
+            return
 
         await ctx.response.send_message("설정 정보를 찾을 수 없습니다.", ephemeral=True)
+
+    @dictionary_setting.autocomplete("property")
+    async def dictionary_setting_property_autocomplete(
+        self, _ctx: Interaction, _current: str
+    ) -> list[Choice[str]]:
+        return [
+            Choice(name="색상", value="color"),
+            Choice(name="제외 열", value="exclude_column"),
+            Choice(name="단어 열", value="word_column"),
+            Choice(name="시트 인덱스", value="sheet_index"),
+            Choice(name="이름", value="name"),
+        ]
 
     @dictionary_group.command(name='새로고침', description='사전을 다시 불러옵니다.')
     async def dictionary_reload(self, ctx: Interaction, name: str):
@@ -302,16 +352,6 @@ class DictionaryCog(Cog):
         await ctx.response.defer(ephemeral=True)
         database.reload()
         await ctx.edit_original_response(content=f'`{name}` 사전이 새로고침되었습니다.')
-
-    @dictionary_setting.autocomplete("property")
-    async def dictionary_setting_property_autocomplete(
-        self, _ctx: Interaction, _current: str
-    ) -> list[Choice[str]]:
-        return [
-            Choice(name="색상", value="color"),
-            Choice(name="제외 열", value="exclude_column"),
-            Choice(name="단어 열", value="word_column"),
-        ]
 
     @search.autocomplete("conlang_name")
     @dictionary_info.autocomplete("name")

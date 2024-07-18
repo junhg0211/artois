@@ -41,6 +41,8 @@ class Database:
 
         row_indexes = list()
         for i, row in enumerate(self.sheet_values):
+            if i == 0:
+                continue
             sim = list()
             for j, cell in enumerate(row):
                 if j in exclude_column_indexes:

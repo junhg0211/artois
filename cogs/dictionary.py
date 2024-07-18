@@ -39,12 +39,12 @@ class Dictionary:
         author = bot.get_user(self.author)
         embed.add_field(name="스프레드시트 ID", value=f"{self.spreadsheet_id}", inline=False)
         embed.add_field(name="이름", value=f"{self.name}")
-        embed.add_field(name="시트 인덱스", value=f"{self.sheet_index}")
+        embed.add_field(name="시트 인덱스", value=f"{self.sheet_index + 1}")
         if author is not None:
             embed.add_field(name="제작자", value=f"{author.mention}")
-        embed.add_field(name="단어 열", value=f"{self.word_column}")
+        embed.add_field(name="단어 열", value=f"{self.word_column + 1}")
         embed.add_field(name="색상", value=f"#{self.color:06X}")
-        embed.add_field(name="제외 열", value=f"{self.exclude_columns}")
+        embed.add_field(name="제외 열", value=f"{list(map(lambda x: x + 1, self.exclude_columns))}")
         embed.add_field(name="단어 수", value=f"{len(self.database.sheet_values)-1}개")
 
         return embed
@@ -162,6 +162,8 @@ class DictionaryCog(Cog):
     async def dictionary_add(
         self, ctx: Interaction, name: str, spreadsheet_id: str, sheet_index: int
     ):
+        sheet_index -= 1
+
         await ctx.response.defer(ephemeral=True)
 
         for dictionary in self.dictionaries:
@@ -272,16 +274,16 @@ class DictionaryCog(Cog):
 
         if property == "exclude_column":
             try:
-                numbers = map(int, value.split(","))
+                numbers = map(lambda x: int(x) - 1, sorted(set(value.split(","))))
             except ValueError:
                 await ctx.response.send_message(
-                    "제외 열은 `,`로 구분된 숫자들로만 입력해야 합니다.", ephemeral=True
+                    "제외 열은 `,`로 구분된 정수들로만 입력해야 합니다.", ephemeral=True
                 )
                 return
 
             dictionary.exclude_columns = list(numbers)
             await ctx.response.send_message(
-                f"제외 열을 `{dictionary.exclude_columns}`(으)로 설정했습니다.",
+                f"제외 열을 `{list(map(lambda x: x + 1, dictionary.exclude_columns))}`(으)로 설정했습니다.",
                 ephemeral=True,
             )
             self.dump_dictionaries()
@@ -296,15 +298,16 @@ class DictionaryCog(Cog):
                 )
                 return
 
-            if 0 > word_column:
+            if 1 > word_column:
                 await ctx.response.send_message(
-                    "단어 열은 0 이상의 정수를 입력해야 합니다.", ephemeral=True
+                    "단어 열은 1 이상의 정수를 입력해야 합니다.", ephemeral=True
                 )
                 return
+            word_column -= 1
 
             dictionary.word_column = word_column
             await ctx.response.send_message(
-                f"단어 열을 `{dictionary.word_column}`(으)로 설정했습니다.",
+                f"단어 열을 `{dictionary.word_column + 1}`(으)로 설정했습니다.",
                 ephemeral=True,
             )
             self.dump_dictionaries()
@@ -319,15 +322,16 @@ class DictionaryCog(Cog):
                 )
                 return
 
-            if 0 > new_sheet_index:
+            if 1 > new_sheet_index:
                 await ctx.response.send_message(
-                    "시트 인덱스는 0 이상의 정수를 입력해야 합니다.", ephemeral=True
+                    "시트 인덱스는 1 이상의 정수를 입력해야 합니다.", ephemeral=True
                 )
                 return
+            new_sheet_index -= 1
 
             dictionary.sheet_index = new_sheet_index
             await ctx.response.send_message(
-                f"시트 인덱스를 `{dictionary.sheet_index}`(으)로 설정했습니다.",
+                f"시트 인덱스를 `{dictionary.sheet_index + 1}`(으)로 설정했습니다.",
                 ephemeral=True,
             )
             self.dump_dictionaries()

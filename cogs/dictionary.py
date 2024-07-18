@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from dataclasses import dataclass, asdict, field
 from json import load, dump
 
-from discord import Interaction, Embed
+from discord import Interaction, Embed, Reaction, Member, MessageType
 from discord.app_commands import command, Group, Choice, describe
 from discord.ext.commands import Cog, Bot
 from gspread.exceptions import SpreadsheetNotFound
@@ -59,7 +59,7 @@ def load_dictionary(dictionary) -> Dictionary:
 
 class DictionaryCog(Cog):
     def __init__(self, bot):
-        self.bot = bot
+        self.bot: Bot = bot
 
         with open("res/dictionaries.json", "r", encoding="utf-8") as file:
             self.dictionaries: list[Dictionary] = list(map(load_dictionary, load(file)))
@@ -70,6 +70,18 @@ class DictionaryCog(Cog):
                 map(lambda x: asdict(x, dict_factory=x.dict_factory), self.dictionaries)
             )
             dump(data, file, ensure_ascii=False)
+    
+    @Cog.listener()
+    async def on_reaction_add(self, reaction: Reaction, user: Member):
+        if reaction.emoji != '🗑️':
+            return
+        if reaction.message.author.id != self.bot.user.id:
+            return
+        if reaction.message.type != MessageType.chat_input_command:
+            return
+        if reaction.message.interaction_metadata.user != user.id:
+            return
+        await reaction.message.delete()
 
     @command(name="검색", description="단어를 검색합니다.")
     @describe(

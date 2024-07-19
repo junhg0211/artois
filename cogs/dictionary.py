@@ -30,12 +30,14 @@ class Dictionary:
         return {k: v for (k, v) in x if ((v is not None) and (k not in exclude_fields))}
 
     def get_embed(self, bot: Bot) -> Embed:
+        # create embed
         embed = Embed(
             colour=self.color,
             title=f"`{self.name}` 사전",
             url=generate_dictionary_url(self.spreadsheet_id),
         )
 
+        # add fields
         author = bot.get_user(self.author)
         embed.add_field(name="스프레드시트 ID", value=f"{self.spreadsheet_id}", inline=False)
         embed.add_field(name="이름", value=f"{self.name}")
@@ -50,21 +52,24 @@ class Dictionary:
         return embed
 
 
-def load_dictionary(dictionary) -> Dictionary:
-    spreadsheet_id = dictionary["spreadsheet_id"]
-    sheet_index = dictionary["sheet_index"]
+def load_dictionary(dictionary_json) -> Dictionary:
+    """ `dictionary_json`정보로부터 `Dictionary` 객체를 만들어냅니다. """
+    spreadsheet_id = dictionary_json["spreadsheet_id"]
+    sheet_index = dictionary_json["sheet_index"]
     database = Database(spreadsheet_id, sheet_index)
-    return Dictionary(database=database, **dictionary)
+    return Dictionary(database=database, **dictionary_json)
 
 
 class DictionaryCog(Cog):
     def __init__(self, bot):
         self.bot: Bot = bot
 
+        # load dictionaries from file
         with open("res/dictionaries.json", "r", encoding="utf-8") as file:
             self.dictionaries: list[Dictionary] = list(map(load_dictionary, load(file)))
 
     def dump_dictionaries(self):
+        """ `self.dictionaries`를 파일로 저장합니다. """
         with open("res/dictionaries.json", "w", encoding="utf-8") as file:
             data = list(
                 map(lambda x: asdict(x, dict_factory=x.dict_factory), self.dictionaries)
@@ -73,6 +78,7 @@ class DictionaryCog(Cog):
     
     @Cog.listener()
     async def on_reaction_add(self, reaction: Reaction, user: Member):
+        """ 커맨드 사용자가 `🗑` 이모지를 남기면️ 메시지를 삭제합니다. """
         if reaction.emoji != '🗑️':
             return
         if reaction.message.author.id != self.bot.user.id:
@@ -98,6 +104,7 @@ class DictionaryCog(Cog):
         count: int = 5,
         ephemeral: bool = True,
     ):
+        # get dictionary object
         try:
             dictionary = next(
                 filter(lambda x: x.name == conlang_name, self.dictionaries)
@@ -109,15 +116,18 @@ class DictionaryCog(Cog):
             )
             return
 
+        # check if last greater than 7 days from last reload
         reloading = database.last_reload + timedelta(days=7) < datetime.now()
         if reloading:
             await ctx.response.defer(ephemeral=ephemeral)
             database.reload()
 
+        # search rows by query
         rows = await database.search_rows(
             query, dictionary.word_column, dictionary.exclude_columns
         )
 
+        # create result embed
         embed = Embed(
             colour=dictionary.color,
             title=f"`{dictionary.name}` 사전의 검색 결과",
@@ -131,6 +141,7 @@ class DictionaryCog(Cog):
 
             embed.add_field(name=word, value=f"\n".join(result))
 
+        # send result message
         if reloading:
             await ctx.edit_original_response(embed=embed)
         else:
@@ -141,6 +152,7 @@ class DictionaryCog(Cog):
     @dictionary_group.command(name="정보", description="사전의 정보를 확인합니다.")
     @describe(name="사전 이름")
     async def dictionary_info(self, ctx: Interaction, name: str):
+        # get dictionary object
         try:
             dictionary = next(filter(lambda x: x.name == name, self.dictionaries))
         except StopIteration:
@@ -149,6 +161,7 @@ class DictionaryCog(Cog):
             )
             return
 
+        # send result message
         await ctx.response.send_message(
             embed=dictionary.get_embed(self.bot), ephemeral=True
         )
@@ -166,6 +179,7 @@ class DictionaryCog(Cog):
 
         await ctx.response.defer(ephemeral=True)
 
+        # check duplicate dictionary name
         for dictionary in self.dictionaries:
             if name == dictionary.name:
                 await ctx.edit_original_response(
@@ -173,6 +187,7 @@ class DictionaryCog(Cog):
                 )
                 return
 
+        # make database object
         try:
             database = Database(spreadsheet_id, sheet_index)
         except PermissionError:
@@ -186,12 +201,14 @@ class DictionaryCog(Cog):
             )
             return
 
+        # append dictionary to dictionary index
         dictionary = Dictionary(
             name, spreadsheet_id, sheet_index, ctx.user.id, database
         )
         self.dictionaries.append(dictionary)
         self.dump_dictionaries()
 
+        # send result message
         await ctx.edit_original_response(
             content=f"언어 `{name}`의 사전이 추가되었습니다. "
                     f"`/사전 설정` 명령어를 통해 사전의 설정을 바꾸거나 수정할 수 있습니다."
@@ -217,6 +234,7 @@ class DictionaryCog(Cog):
     @dictionary_group.command(name="삭제", description="사전을 삭제합니다.")
     @describe(name="삭제할 사전 이름")
     async def dictionary_delete(self, ctx: Interaction, name: str):
+        # get dictionary object
         try:
             dictionary = next(filter(lambda x: x.name == name, self.dictionaries))
         except StopIteration:
@@ -225,14 +243,18 @@ class DictionaryCog(Cog):
             )
             return
 
+        # check dictionary author
         if dictionary.author != ctx.user.id:
             await ctx.response.send_message(
                 f"사전은 사전 작성자만 삭제할 수 있습니다.", ephemeral=True
             )
             return
 
+        # remove dictionary
         self.dictionaries.remove(dictionary)
         self.dump_dictionaries()
+
+        # send result message
         await ctx.response.send_message(
             f"`{name}` 사전을 제거했습니다.", ephemeral=True
         )
@@ -242,6 +264,7 @@ class DictionaryCog(Cog):
     async def dictionary_setting(
         self, ctx: Interaction, name: str, property: str, value: str
     ):
+        # get dictionary object
         try:
             dictionary = next(filter(lambda x: x.name == name, self.dictionaries))
         except StopIteration:
@@ -250,6 +273,7 @@ class DictionaryCog(Cog):
             )
             return
 
+        # check dictionary author
         if dictionary.author != ctx.user.id:
             await ctx.response.send_message(
                 f"사전은 사전 작성자만 설정할 수 있습니다.", ephemeral=True
@@ -257,6 +281,7 @@ class DictionaryCog(Cog):
             return
 
         if property == "color":
+            # fetch color
             value = value.lower()
             color_re = re.compile(r"#[0-9a-f]{6}")
             if color_re.fullmatch(value) is None:
@@ -265,14 +290,18 @@ class DictionaryCog(Cog):
                 )
                 return
 
+            # change dictionary color
             dictionary.color = int(value[1:], 16)
+            self.dump_dictionaries()
+
+            # send result message
             await ctx.response.send_message(
                 f"사전의 색상을 `{value}`로 설정했습니다.", ephemeral=True
             )
-            self.dump_dictionaries()
             return
 
         if property == "exclude_column":
+            # fetch column indexes
             try:
                 numbers = map(lambda x: int(x) - 1, sorted(set(value.split(","))))
             except ValueError:
@@ -281,15 +310,19 @@ class DictionaryCog(Cog):
                 )
                 return
 
+            # set exclude column indexes
             dictionary.exclude_columns = list(numbers)
+            self.dump_dictionaries()
+
+            # send result message
             await ctx.response.send_message(
                 f"제외 열을 `{list(map(lambda x: x + 1, dictionary.exclude_columns))}`(으)로 설정했습니다.",
                 ephemeral=True,
             )
-            self.dump_dictionaries()
             return
 
         if property == "word_column":
+            # fetch word column
             try:
                 word_column = int(value)
             except ValueError:
@@ -298,22 +331,32 @@ class DictionaryCog(Cog):
                 )
                 return
 
+            # word column validation
             if 1 > word_column:
                 await ctx.response.send_message(
                     "단어 열은 1 이상의 정수를 입력해야 합니다.", ephemeral=True
                 )
                 return
+            if word_column > len(dictionary.database.sheet_values[0]):
+                await ctx.response.send_message(
+                    "단어 열 인덱스가 열 개수를 초과합니다.", ephemeral=True
+                )
+                return
             word_column -= 1
 
+            # set word column
             dictionary.word_column = word_column
+            self.dump_dictionaries()
+
+            # send result message
             await ctx.response.send_message(
                 f"단어 열을 `{dictionary.word_column + 1}`(으)로 설정했습니다.",
                 ephemeral=True,
             )
-            self.dump_dictionaries()
             return
         
         if property == "sheet_index":
+            # fetch sheet index
             try:
                 new_sheet_index = int(value)
             except ValueError:
@@ -322,6 +365,7 @@ class DictionaryCog(Cog):
                 )
                 return
 
+            # sheet index validation
             if 1 > new_sheet_index:
                 await ctx.response.send_message(
                     "시트 인덱스는 1 이상의 정수를 입력해야 합니다.", ephemeral=True
@@ -329,15 +373,19 @@ class DictionaryCog(Cog):
                 return
             new_sheet_index -= 1
 
+            # set sheet index
             dictionary.sheet_index = new_sheet_index
+            self.dump_dictionaries()
+
+            # send result message
             await ctx.response.send_message(
                 f"시트 인덱스를 `{dictionary.sheet_index + 1}`(으)로 설정했습니다.",
                 ephemeral=True,
             )
-            self.dump_dictionaries()
             return
 
         if property == "name":
+            # dictionary name duplication check
             for d in self.dictionaries:
                 if d.name == value:
                     await ctx.response.send_message(
@@ -345,11 +393,14 @@ class DictionaryCog(Cog):
                     )
                     return
             
+            # set dictionary name
             dictionary.name = value
+            self.dump_dictionaries()
+
+            # send result message
             await ctx.response.send_message(
                 f'사전 이름을 `{value}`(으)로 설정했습니다.', ephemeral=True
             )
-            self.dump_dictionaries()
             return
 
         await ctx.response.send_message("설정 정보를 찾을 수 없습니다.", ephemeral=True)
@@ -368,6 +419,7 @@ class DictionaryCog(Cog):
 
     @dictionary_group.command(name='새로고침', description='사전을 다시 불러옵니다.')
     async def dictionary_reload(self, ctx: Interaction, name: str):
+        # get dictionary object
         try:
             dictionary = next(
                 filter(lambda x: x.name == name, self.dictionaries)
@@ -380,7 +432,11 @@ class DictionaryCog(Cog):
             return
 
         await ctx.response.defer(ephemeral=True)
+
+        # reload dictionary
         database.reload()
+
+        # send result message
         await ctx.edit_original_response(content=f'`{name}` 사전이 새로고침되었습니다.')
 
     @search.autocomplete("conlang_name")

@@ -19,19 +19,21 @@ async def on_ready():
 async def load_cogs(cog_re=r".*"):
     filter_pattern = re.compile(cog_re)
     for file in listdir("cogs"):
-        if file.endswith(".py") and not file.startswith("_"):
-            if filter_pattern.search(file[:-3]) is None:
-                continue
+        # cog name validation
+        if not file.endswith(".py") or file.startswith("_"):
+            continue
+        if filter_pattern.search(file[:-3]) is None:
+            continue
 
-            cog_name = file[:-3]
-
-            print(f"Loading cog `{cog_name}` ...", end="\r")
-            await bot.load_extension(f"cogs.{cog_name}")
-            print(f"Cog loaded: {cog_name}      ")
+        # load cog
+        cog_name = file[:-3]
+        print(f"Loading cog `{cog_name}` ...", end="\r")
+        await bot.load_extension(f"cogs.{cog_name}")
+        print(f"Cog loaded: {cog_name}      ")
 
 
 def parse_args():
-    from consts import get_secret, override_const
+    from consts import override_const
 
     parser = ArgumentParser()
 

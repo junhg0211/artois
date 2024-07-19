@@ -20,9 +20,7 @@ class Database:
         print(f'load {spreadsheet_key}')
         wait(2)
         self.credential = gspread.service_account(filename='res/google_credentials.json')
-        self.sheet = self.credential \
-            .open_by_key(self.spreadsheet_key) \
-            .get_worksheet(self.sheet_number)
+        self.sheet = self.credential.open_by_key(self.spreadsheet_key).get_worksheet(self.sheet_number)
 
         self.last_reload = datetime.now()
         self.sheet_values = None
@@ -36,13 +34,18 @@ class Database:
         return self
 
     async def search_rows(self, query: str, word_column: int, exclude_column_indexes: Optional[list] = None) -> list:
+        # init exclude column index
         if exclude_column_indexes is None:
             exclude_column_indexes = list()
 
+        # get similar row indexes
         row_indexes = list()
         for i, row in enumerate(self.sheet_values):
+            # exclude first row
             if i == 0:
                 continue
+
+            # calculate similarity if row cell has `query` in it
             sim = list()
             for j, cell in enumerate(row):
                 if j in exclude_column_indexes:
@@ -53,10 +56,14 @@ class Database:
                         sim.append(similarity(value, query))
             if sim:
                 row_indexes.append((sum(sim) / len(sim), i))
-        row_indexes = map(lambda x: x[1], sorted(row_indexes, reverse=True))
 
+        # sort row indexes by similarity
+        row_indexes = map(lambda x: x[1], sorted(row_indexes, reverse=True, key=lambda x: x[0]))
+
+        # parse row indexes with row data
         result = list()
         for row_index in row_indexes:
+            # cut over than 25th row
             if len(result) >= 25:
                 break
 

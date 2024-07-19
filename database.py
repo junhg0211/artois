@@ -44,6 +44,7 @@ class Database:
             hidden_column_indexes = list()
 
         # get similar row indexes
+        perfect_match = set()
         row_indexes = list()
         for i, row in enumerate(self.sheet_values):
             # exclude first row
@@ -61,6 +62,8 @@ class Database:
                         sim.append(similarity(value, query))
             if sim:
                 row_indexes.append((sum(sim) / len(sim), i))
+                if 1.0 in sim:
+                    perfect_match.add(i)
 
         # sort row indexes by similarity
         row_indexes = map(lambda x: x[1], sorted(row_indexes, reverse=True, key=lambda x: x[0]))
@@ -84,6 +87,9 @@ class Database:
                     continue
                 row[self.header[i]] = value
             if row:
-                result.append((self.sheet_values[row_index][word_column], row))
+                word = self.sheet_values[row_index][word_column]
+                if row_index in perfect_match:
+                    word = f'__{word}__'
+                result.append((word, row))
 
         return result

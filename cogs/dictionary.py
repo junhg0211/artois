@@ -170,7 +170,7 @@ class DictionaryCog(Cog):
     @describe(
         name="사전 이름",
         spreadsheet_id="사전의 스프레드시트 아이디",
-        sheet_index="사전의 시트 번호 (0부터 시작)",
+        sheet_index="사전의 시트 번호",
     )
     async def dictionary_add(
         self, ctx: Interaction, name: str, spreadsheet_id: str, sheet_index: int

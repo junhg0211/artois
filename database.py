@@ -33,10 +33,15 @@ class Database:
         self.header = self.sheet_values[0]
         return self
 
-    async def search_rows(self, query: str, word_column: int, exclude_column_indexes: Optional[list] = None) -> list:
+    async def search_rows(
+        self, query: str, word_column: int, exclude_column_indexes: Optional[list] = None,
+        hidden_column_indexes: Optional[list] = None
+    ) -> list:
         # init exclude column index
         if exclude_column_indexes is None:
             exclude_column_indexes = list()
+        if hidden_column_indexes is None:
+            hidden_column_indexes = list()
 
         # get similar row indexes
         row_indexes = list()
@@ -72,6 +77,8 @@ class Database:
                 if not value:
                     continue
                 if i in exclude_column_indexes:
+                    continue
+                if i in hidden_column_indexes:
                     continue
                 if i == word_column:
                     continue

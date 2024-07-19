@@ -22,6 +22,7 @@ class Dictionary:
     database: Database
     word_column: int = 0
     exclude_columns: list[int] = field(default_factory=list)
+    hidden_columns: list[int] = field(default_factory=list)
     color: int = get_const("color.main")
 
     @staticmethod
@@ -47,6 +48,7 @@ class Dictionary:
         embed.add_field(name="단어 열", value=f"{self.word_column + 1}")
         embed.add_field(name="색상", value=f"#{self.color:06X}")
         embed.add_field(name="제외 열", value=f"{list(map(lambda x: x + 1, self.exclude_columns))}")
+        embed.add_field(name="숨김 열", value=f"{list(map(lambda x: x + 1, self.hidden_columns))}")
         embed.add_field(name="단어 수", value=f"{len(self.database.sheet_values)-1}개")
 
         return embed
@@ -124,7 +126,7 @@ class DictionaryCog(Cog):
 
         # search rows by query
         rows = await database.search_rows(
-            query, dictionary.word_column, dictionary.exclude_columns
+            query, dictionary.word_column, dictionary.exclude_columns, dictionary.hidden_columns
         )
 
         # create result embed
@@ -302,16 +304,19 @@ class DictionaryCog(Cog):
 
         if property == "exclude_column":
             # fetch column indexes
-            try:
-                numbers = map(lambda x: int(x) - 1, sorted(set(value.split(","))))
-            except ValueError:
-                await ctx.response.send_message(
-                    "제외 열은 `,`로 구분된 정수들로만 입력해야 합니다.", ephemeral=True
-                )
-                return
+            if value == '0':
+                numbers = list()
+            else:
+                try:
+                    numbers = list(map(lambda x: int(x) - 1, sorted(set(value.split(",")))))
+                except ValueError:
+                    await ctx.response.send_message(
+                        "제외 열은 `,`로 구분된 정수들 또는 `0`(없음)으로만 입력해야 합니다.", ephemeral=True
+                    )
+                    return
 
             # set exclude column indexes
-            dictionary.exclude_columns = list(numbers)
+            dictionary.exclude_columns = numbers
             self.dump_dictionaries()
 
             # send result message
@@ -403,6 +408,30 @@ class DictionaryCog(Cog):
             )
             return
 
+        if property == "hidden_column":
+            # fetch column indexes
+            if value == '0':
+                numbers = list()
+            else:
+                try:
+                    numbers = list(map(lambda x: int(x) - 1, sorted(set(value.split(",")))))
+                except ValueError:
+                    await ctx.response.send_message(
+                        "숨김 열은 `,`로 구분된 정수들 또는 `0`(없음)으로만 입력해야 합니다.", ephemeral=True
+                    )
+                    return
+            
+            # set hidden column
+            dictionary.hidden_columns = numbers
+            self.dump_dictionaries()
+
+            # send result message
+            await ctx.response.send_message(
+                f'숨김 열을 `{list(map(lambda x: x+1, dictionary.hidden_columns))}`(으)로 설정했습니다.',
+                ephemeral=True
+            )
+            return
+
         await ctx.response.send_message("설정 정보를 찾을 수 없습니다.", ephemeral=True)
 
     @dictionary_setting.autocomplete("property")
@@ -415,6 +444,7 @@ class DictionaryCog(Cog):
             Choice(name="단어 열", value="word_column"),
             Choice(name="시트 인덱스", value="sheet_index"),
             Choice(name="이름", value="name"),
+            Choice(name="숨김 열", value="hidden_column"),
         ]
 
     @dictionary_group.command(name='새로고침', description='사전을 다시 불러옵니다.')

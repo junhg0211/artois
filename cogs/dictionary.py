@@ -10,7 +10,7 @@ from gspread.exceptions import SpreadsheetNotFound
 
 from consts import get_const
 from database import Database
-from util import generate_dictionary_url
+from util import generate_dictionary_url, similarity
 
 
 @dataclass
@@ -436,16 +436,23 @@ class DictionaryCog(Cog):
 
     @dictionary_setting.autocomplete("property")
     async def dictionary_setting_property_autocomplete(
-        self, _ctx: Interaction, _current: str
+        self, _ctx: Interaction, current: str
     ) -> list[Choice[str]]:
-        return [
-            Choice(name="색상", value="color"),
-            Choice(name="제외 열", value="exclude_column"),
-            Choice(name="단어 열", value="word_column"),
-            Choice(name="시트 인덱스", value="sheet_index"),
-            Choice(name="이름", value="name"),
-            Choice(name="숨김 열", value="hidden_column"),
+        options = [
+            ("색상", "color"),
+            ("제외 열", "exclude_column"),
+            ("단어 열", "word_column"),
+            ("시트 인덱스", "sheet_index"),
+            ("이름", "name"),
+            ("숨김 열", "hidden_column"),
         ]
+
+        similarities = sorted(
+            filter(lambda x: current in x[0], options),
+            key=lambda x: similarity(x[0], current),
+            reverse=True)
+
+        return list(map(lambda x: Choice(name=x[0], value=x[1]), similarities))
 
     @dictionary_group.command(name='새로고침', description='사전을 다시 불러옵니다.')
     async def dictionary_reload(self, ctx: Interaction, name: str):

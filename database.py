@@ -58,8 +58,8 @@ class Database:
                     continue
                 values = re.split(r', |; ', cell)
                 for value in values:
-                    if query in value:
-                        sim.append(similarity(value, query))
+                    if query.lower() in value.lower():
+                        sim.append(similarity(value.lower(), query.lower()))
             if sim:
                 row_indexes.append((sum(sim) / len(sim), i))
                 if 1.0 in sim:

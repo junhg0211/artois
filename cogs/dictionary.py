@@ -54,11 +54,14 @@ class Dictionary:
         return embed
 
 
-def load_dictionary(dictionary_json) -> Dictionary:
+def load_dictionary(dictionary_json) -> Dictionary | None:
     """ `dictionary_json`정보로부터 `Dictionary` 객체를 만들어냅니다. """
     spreadsheet_id = dictionary_json["spreadsheet_id"]
     sheet_index = dictionary_json["sheet_index"]
-    database = Database(spreadsheet_id, sheet_index)
+    try:
+        database = Database(spreadsheet_id, sheet_index)
+    except PermissionError:
+        return None
     return Dictionary(database=database, **dictionary_json)
 
 
@@ -68,7 +71,12 @@ class DictionaryCog(Cog):
 
         # load dictionaries from file
         with open("res/dictionaries.json", "r", encoding="utf-8") as file:
-            self.dictionaries: list[Dictionary] = list(map(load_dictionary, load(file)))
+            self.dictionaries: list[Dictionary] = list()
+            for dictionary_json in load(file):
+                dictionary = load_dictionary(dictionary_json)
+                if dictionary is None:
+                    continue
+                self.dictionaries.append(dictionary)
 
     def dump_dictionaries(self):
         """ `self.dictionaries`를 파일로 저장합니다. """

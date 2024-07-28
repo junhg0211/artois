@@ -9,7 +9,7 @@ diacritics = {
 }
 
 
-class DictionaryCog(Cog):
+class UtilCog(Cog):
     @command(name="다이어크리틱", description="문자열에 다이어크리틱을 붙입니다.")
     @describe(string="변경할 문자열")
     async def search(self, ctx: Interaction, string: str):
@@ -19,4 +19,4 @@ class DictionaryCog(Cog):
 
 
 async def setup(bot: Bot):
-    await bot.add_cog(DictionaryCog(bot))
+    await bot.add_cog(UtilCog(bot))

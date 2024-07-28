@@ -18,7 +18,7 @@ class Database:
         self.sheet_number = sheet_number
 
         print(f'load {spreadsheet_key}')
-        wait(2)
+        wait(3)
         self.credential = gspread.service_account(filename='res/google_credentials.json')
         self.sheet = self.credential.open_by_key(self.spreadsheet_key).get_worksheet(self.sheet_number)
 

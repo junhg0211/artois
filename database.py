@@ -58,8 +58,9 @@ class Database:
                     continue
                 values = re.split(r', |; ', cell)
                 for value in values:
-                    if query.lower() in value.lower():
-                        sim.append(similarity(value.lower(), query.lower()))
+                    value = re.sub(r'(\[|\(|\{).+(\]|\)|\})', '', value).strip()
+                    if normalise(query) in normalise(value):
+                        sim.append(similarity(normalise(value), normalise(query)))
             if sim:
                 row_indexes.append((sum(sim) / len(sim), i))
                 if 1.0 in sim:

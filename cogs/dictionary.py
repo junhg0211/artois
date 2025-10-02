@@ -73,7 +73,10 @@ class DictionaryCog(Cog):
         with open("res/dictionaries.json", "r", encoding="utf-8") as file:
             self.dictionaries: list[Dictionary] = list()
             for dictionary_json in load(file):
-                dictionary = load_dictionary(dictionary_json)
+                try:
+                    dictionary = load_dictionary(dictionary_json)
+                except:
+                    continue
                 if dictionary is None:
                     continue
                 self.dictionaries.append(dictionary)
